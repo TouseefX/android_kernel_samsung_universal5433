@@ -1592,11 +1592,11 @@ static struct task_struct *copy_process(unsigned long clone_flags,
 	perf_event_fork(p);
 
 	trace_task_newtask(p, clone_flags);
+	uprobe_copy_process(p);
 #ifdef CONFIG_TIMA_RKP_RO_CRED
 	if(rkp_cred_enable)
 		rkp_assign_pgd(p);
 #endif/*CONFIG_TIMA_RKP_RO_CRED*/
-
 	return p;
 
 bad_fork_free_pid:
