@@ -87,41 +87,61 @@ static void put_compound_page(struct page *page)
 			   get_page_unless_zero(page_head))) {
 			unsigned long flags;
 
+		/*
+		 * THP can not break up slab pages so avoid taking
+		 * compound_lock(). Slab performs non-atomic bit ops
+		 * on page->flags for better performance. In
+		 * particular slab_unlock() in slub used to be a hot
+		 * path. It is still hot on arches that do not support
+		 * this_cpu_cmpxchg_double().
+		 *
+		 * If "page" is part of a slab or hugetlbfs page it
+		 * cannot be splitted and the head page cannot change
+		 * from under us. And if "page" is part of a THP page
+		 * under splitting, if the head page pointed by the
+		 * THP tail isn't a THP head anymore, we'll find
+		 * PageTail clear after smp_rmb() and we'll treat it
+		 * as a single page.
+		 */
+		if (PageSlab(page_head) || PageHeadHuge(page_head)) {
 			/*
-			 * THP can not break up slab pages so avoid taking
-			 * compound_lock().  Slab performs non-atomic bit ops
-			 * on page->flags for better performance.  In particular
-			 * slab_unlock() in slub used to be a hot path.  It is
-			 * still hot on arches that do not support
-			 * this_cpu_cmpxchg_double().
+			 * If "page" is a THP tail, we must read the tail page
+			 * flags after the head page flags. The
+			 * split_huge_page side enforces write memory
+			 * barriers between clearing PageTail and before the
+			 * head page can be freed and reallocated.
 			 */
-			if (PageSlab(page_head) || PageHeadHuge(page_head)) {
-				if (likely(PageTail(page))) {
-					/*
-					 * __split_huge_page_refcount
-					 * cannot race here.
-					 */
-					VM_BUG_ON(!PageHead(page_head));
-					atomic_dec(&page->_mapcount);
-					if (put_page_testzero(page_head))
-						VM_BUG_ON(1);
-					if (put_page_testzero(page_head))
-						__put_compound_page(page_head);
-					return;
-				} else
-					/*
-					 * __split_huge_page_refcount
-					 * run before us, "page" was a
-					 * THP tail. The split
-					 * page_head has been freed
-					 * and reallocated as slab or
-					 * hugetlbfs page of smaller
-					 * order (only possible if
-					 * reallocated as slab on
-					 * x86).
-					 */
-					goto skip_lock;
-			}
+			smp_rmb();
+			if (likely(PageTail(page))) {
+				/*
+				 * __split_huge_page_refcount
+				 * cannot race here.
+				 */
+				VM_BUG_ON(!PageHead(page_head));
+				VM_BUG_ON(page_mapcount(page) <= 0);
+				atomic_dec(&page->_mapcount);
+				if (put_page_testzero(page_head))
+					__put_compound_page(page_head);
+				return;
+			} else
+				/*
+				 * __split_huge_page_refcount
+				 * run before us, "page" was a
+				 * THP tail. The split
+				 * page_head has been freed
+				 * and reallocated as slab or
+				 * hugetlbfs page of smaller
+				 * order (only possible if
+				 * reallocated as slab on
+				 * x86).
+				 */
+				goto out_put_single;
+		}
+
+		if (likely(page != page_head &&
+			   get_page_unless_zero(page_head))) {
+			unsigned long flags;
+
 			/*
 			 * page_head wasn't a dangling pointer but it
 			 * may not be a head page anymore by the time
