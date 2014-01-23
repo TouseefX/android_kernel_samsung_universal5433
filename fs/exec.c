@@ -1262,11 +1262,10 @@ EXPORT_SYMBOL(install_exec_creds);
  * - the caller must hold ->cred_guard_mutex to protect against
  *   PTRACE_ATTACH
  */
-static int check_unsafe_exec(struct linux_binprm *bprm)
+static void check_unsafe_exec(struct linux_binprm *bprm)
 {
 	struct task_struct *p = current, *t;
 	unsigned n_fs;
-	int res = 0;
 
 	if (p->ptrace) {
 		if (p->ptrace & PT_PTRACE_CAP)
@@ -1291,18 +1290,11 @@ static int check_unsafe_exec(struct linux_binprm *bprm)
 	}
 	rcu_read_unlock();
 
-	if (p->fs->users > n_fs) {
+	if (p->fs->users > n_fs)
 		bprm->unsafe |= LSM_UNSAFE_SHARE;
-	} else {
-		res = -EAGAIN;
-		if (!p->fs->in_exec) {
-			p->fs->in_exec = 1;
-			res = 1;
-		}
-	}
+	else
+		p->fs->in_exec = 1;
 	spin_unlock(&p->fs->lock);
-
-	return res;
 }
 
 static void bprm_fill_uid(struct linux_binprm *bprm)
@@ -1351,8 +1343,8 @@ static void bprm_fill_uid(struct linux_binprm *bprm)
 	}
 }
 
-/* 
- * Fill the binprm structure from the inode. 
+/*
+ * Fill the binprm structure from the inode.
  * Check permissions, then read the first 128 (BINPRM_BUF_SIZE) bytes
  *
  * This may be called multiple times for binary chains (scripts for example).
@@ -1645,7 +1637,6 @@ static int do_execve_common(struct filename *filename,
 	struct linux_binprm *bprm;
 	struct file *file;
 	struct files_struct *displaced;
-	bool clear_in_exec;
 	int retval;
 	const struct cred *cred = current_cred();
 
@@ -1681,10 +1672,7 @@ static int do_execve_common(struct filename *filename,
 	if (retval)
 		goto out_free;
 
-	retval = check_unsafe_exec(bprm);
-	if (retval < 0)
-		goto out_free;
-	clear_in_exec = retval;
+	check_unsafe_exec(bprm);
 	current->in_execve = 1;
 
 	file = do_open_exec(filename);
@@ -1753,8 +1741,7 @@ out_file:
 	}
 
 out_unmark:
-	if (clear_in_exec)
-		current->fs->in_exec = 0;
+	current->fs->in_exec = 0;
 	current->in_execve = 0;
 
 out_free:
