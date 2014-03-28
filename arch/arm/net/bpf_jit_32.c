@@ -926,6 +926,7 @@ void bpf_jit_compile(struct sk_filter *fp)
 		bpf_jit_dump(fp->len, alloc_size, 2, ctx.target);
 
 	fp->bpf_func = (void *)ctx.target;
+	fp->jited = 1;
 out:
 	kfree(ctx.offsets);
 	return;
@@ -938,12 +939,6 @@ static void bpf_jit_free_worker(struct work_struct *work)
 
 void bpf_jit_free(struct sk_filter *fp)
 {
-	struct work_struct *work;
-
-	if (fp->bpf_func != sk_run_filter) {
-		work = (struct work_struct *)fp->bpf_func;
-
-		INIT_WORK(work, bpf_jit_free_worker);
-		schedule_work(work);
-	}
+	if (fp->jited)
+		module_free(NULL, fp->bpf_func);
 }
