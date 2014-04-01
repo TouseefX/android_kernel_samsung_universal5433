@@ -4135,6 +4135,7 @@ SYSCALL_DEFINE2(link, const char __user *, oldname, const char __user *, newname
  * @new_dir:	parent of destination
  * @new_dentry:	destination
  * @delegated_inode: returns an inode needing a delegation break
+ * @flags:	rename flags
  *
  * The caller must hold multiple mutexes--see lock_rename()).
  *
@@ -4179,7 +4180,7 @@ SYSCALL_DEFINE2(link, const char __user *, oldname, const char __user *, newname
 int vfs_rename2(struct vfsmount *mnt,
 	       struct inode *old_dir, struct dentry *old_dentry,
 	       struct inode *new_dir, struct dentry *new_dentry,
-	       struct inode **delegated_inode)
+	       struct inode **delegated_inode, unsigned int flags)
 {
 	int error;
 	bool is_dir = d_is_dir(old_dentry);
@@ -4203,6 +4204,9 @@ int vfs_rename2(struct vfsmount *mnt,
 
 	if (!old_dir->i_op->rename)
 		return -EPERM;
+
+	if (flags && !old_dir->i_op->rename2)
+		return -EINVAL;
 
 	/*
 	 * If we are going to change the parent - check write permissions,
@@ -4249,7 +4253,13 @@ int vfs_rename2(struct vfsmount *mnt,
 				goto out;
 		}
 	}
-	error = old_dir->i_op->rename(old_dir, old_dentry, new_dir, new_dentry);
+	if (!flags) {
+		error = old_dir->i_op->rename(old_dir, old_dentry,
+					      new_dir, new_dentry);
+	} else {
+		error = old_dir->i_op->rename2(old_dir, old_dentry,
+					       new_dir, new_dentry, flags);
+	}
 	if (error)
 		goto out;
 
@@ -4283,8 +4293,8 @@ int vfs_rename(struct inode *old_dir, struct dentry *old_dentry,
 }
 EXPORT_SYMBOL(vfs_rename);
 
-SYSCALL_DEFINE4(renameat, int, olddfd, const char __user *, oldname,
-		int, newdfd, const char __user *, newname)
+SYSCALL_DEFINE5(renameat2, int, olddfd, const char __user *, oldname,
+		int, newdfd, const char __user *, newname, unsigned int, flags)
 {
 	struct dentry *old_dir, *new_dir;
 	struct dentry *old_dentry, *new_dentry;
@@ -4296,6 +4306,10 @@ SYSCALL_DEFINE4(renameat, int, olddfd, const char __user *, oldname,
 	unsigned int lookup_flags = 0;
 	bool should_retry = false;
 	int error;
+
+	if (flags)
+		return -EINVAL;
+
 retry:
 	from = user_path_parent(olddfd, oldname, &oldnd, lookup_flags);
 	if (IS_ERR(from)) {
@@ -4368,7 +4382,7 @@ retry_deleg:
 		goto exit5;
 	error = vfs_rename2(oldnd.path.mnt, old_dir->d_inode, old_dentry,
 				   new_dir->d_inode, new_dentry,
-				   &delegated_inode);
+				   &delegated_inode, flags);
 exit5:
 	dput(new_dentry);
 exit4:
@@ -4398,9 +4412,15 @@ exit:
 	return error;
 }
 
+SYSCALL_DEFINE4(renameat, int, olddfd, const char __user *, oldname,
+		int, newdfd, const char __user *, newname)
+{
+	return sys_renameat2(olddfd, oldname, newdfd, newname, 0);
+}
+
 SYSCALL_DEFINE2(rename, const char __user *, oldname, const char __user *, newname)
 {
-	return sys_renameat(AT_FDCWD, oldname, AT_FDCWD, newname);
+	return sys_renameat2(AT_FDCWD, oldname, AT_FDCWD, newname, 0);
 }
 
 int vfs_readlink(struct dentry *dentry, char __user *buffer, int buflen, const char *link)
