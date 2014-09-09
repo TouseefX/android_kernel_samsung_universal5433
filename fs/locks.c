@@ -1581,7 +1581,19 @@ static int generic_add_lease(struct file *filp, long arg, struct file_lock **flp
 		goto out;
 
 	locks_insert_lock(before, lease);
-	error = 0;
+	/*
+	 * The check in break_lease() is lockless. It's possible for another
+	 * open to race in after we did the earlier check for a conflicting
+	 * open but before the lease was inserted. Check again for a
+	 * conflicting open and cancel the lease if there is one.
+	 *
+	 * We also add a barrier here to ensure that the insertion of the lock
+	 * precedes these checks.
+	 */
+	smp_mb();
+	error = check_conflicting_open(dentry, arg);
+	if (error)
+		locks_unlink_lock(before);
 out:
 	if (is_deleg)
 		mutex_unlock(&inode->i_mutex);
