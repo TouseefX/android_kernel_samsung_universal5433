@@ -395,7 +395,7 @@
 		CALL(sys_seccomp)
 		CALL(sys_getrandom)
 /* 385 */	CALL(sys_memfd_create)
-        CALL(sys_ni_syscall)
+        CALL(sys_bpf)
 		CALL(sys_execveat)
 
 #ifndef syscalls_counted
