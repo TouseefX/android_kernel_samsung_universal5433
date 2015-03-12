@@ -115,6 +115,7 @@ struct inet_timewait_sock {
 #define tw_addrpair		__tw_common.skc_addrpair
 #define tw_dport		__tw_common.skc_dport
 #define tw_num			__tw_common.skc_num
+#define tw_cookie		__tw_common.skc_cookie
 #define tw_portpair		__tw_common.skc_portpair
 
 	int			tw_timeout;
