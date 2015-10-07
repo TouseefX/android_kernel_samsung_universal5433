@@ -24,6 +24,8 @@
 #include <linux/fcntl.h>	/* For O_CLOEXEC and O_NONBLOCK */
 #include <linux/kmemcheck.h>
 #include <linux/rcupdate.h>
+#include <linux/once.h>
+
 #include <uapi/linux/net.h>
 
 struct poll_table_struct;
@@ -248,16 +250,13 @@ do {								\
 #define net_dbg_ratelimited(fmt, ...)				\
 	net_ratelimited_function(pr_debug, fmt, ##__VA_ARGS__)
 
-#ifdef CONFIG_MPTCP
-bool __net_get_random_once(void *buf, int nbytes, bool *done,
-			   struct static_key *done_key);
-#endif
+#define net_get_random_once(buf, nbytes)			\
+	get_random_once((buf), (nbytes))
 
-extern int   	     kernel_sendmsg(struct socket *sock, struct msghdr *msg,
-				    struct kvec *vec, size_t num, size_t len);
-extern int   	     kernel_recvmsg(struct socket *sock, struct msghdr *msg,
-				    struct kvec *vec, size_t num,
-				    size_t len, int flags);
+int kernel_sendmsg(struct socket *sock, struct msghdr *msg, struct kvec *vec,
+		   size_t num, size_t len);
+int kernel_recvmsg(struct socket *sock, struct msghdr *msg, struct kvec *vec,
+		   size_t num, size_t len, int flags);
 
 extern int kernel_bind(struct socket *sock, struct sockaddr *addr,
 		       int addrlen);
