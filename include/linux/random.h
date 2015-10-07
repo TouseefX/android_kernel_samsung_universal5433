@@ -6,6 +6,8 @@
 #ifndef _LINUX_RANDOM_H
 #define _LINUX_RANDOM_H
 
+#include <linux/once.h>
+
 #include <uapi/linux/random.h>
 
 
@@ -35,6 +37,9 @@ void prandom_reseed_late(void);
 u32 prandom_u32_state(struct rnd_state *);
 void prandom_bytes_state(struct rnd_state *state, void *buf, int nbytes);
 void prandom_seed_full_state(struct rnd_state __percpu *pcpu_state);
+
+#define prandom_init_once(pcpu_state)			\
+	DO_ONCE(prandom_seed_full_state, (pcpu_state))
 
 /**
  * prandom_u32_max - returns a pseudo-random number in interval [0, ep_ro)
