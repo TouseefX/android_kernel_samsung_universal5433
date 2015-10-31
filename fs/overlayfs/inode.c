@@ -359,7 +359,10 @@ static int ovl_dentry_open(struct dentry *dentry, struct file *file,
 		ovl_path_upper(dentry, &realpath);
 	}
 
-	return vfs_open(&realpath, file, cred);
+	if (realpath.dentry->d_flags & DCACHE_OP_SELECT_INODE)
+		return realpath.dentry->d_op->d_select_inode(realpath.dentry, file_flags);
+
+	return d_backing_inode(realpath.dentry);
 }
 
 static const struct inode_operations ovl_file_inode_operations = {
