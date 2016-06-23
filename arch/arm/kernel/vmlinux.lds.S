@@ -118,6 +118,8 @@ SECTIONS
 		*(.got)			/* Global offset table		*/
 			ARM_CPU_KEEP(PROC_INFO)
 	}
+
+	_etext = .;			/* End of text section */
 #ifdef CONFIG_RKP_TEST_INFRA
 	_end_stext = .;			/* End of text */
 #endif /*CONFIG_RKP_TEST_INFRA*/
@@ -156,8 +158,6 @@ SECTIONS
 	NOTES
 
 	. = ALIGN(PAGE_SIZE);
-	_etext = .;			/* End of text and rodata section */
-
 #ifndef CONFIG_XIP_KERNEL
 #ifdef CONFIG_STRICT_MEMORY_RWX
 	. = ALIGN(1<<SECTION_SHIFT);
