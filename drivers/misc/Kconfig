@@ -521,7 +521,7 @@ config LATTICE_ECP3_CONFIG
 
 config UID_SYS_STATS
 	tristate "Per-UID statistics"
-	depends on PROFILING
+	depends on PROFILING && TASK_XACCT && TASK_IO_ACCOUNTING
 	default y
 	help
 	  Per UID based io statistics exported to /proc/uid_io
