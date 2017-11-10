@@ -1536,6 +1536,7 @@ struct list_head	*scm_work_list;
 	unsigned int	sequential_io_avg;
 #endif
 	atomic64_t *concurrent_active_time;
+	atomic64_t *concurrent_policy_time;
 #ifdef CONFIG_SDP
 	unsigned int sensitive;
 #endif
