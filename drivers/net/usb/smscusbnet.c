@@ -1267,7 +1267,7 @@ static void myevent(struct work_struct *work)
 			){
 			if((dev->idleCount >= PM_IDLE_DELAY) &&
 #if (LINUX_VERSION_CODE > KERNEL_VERSION(2,6,31))
-				(atomic_read(&dev->uintf->pm_usage_cnt) > 0)){
+				(atomic_read(&dev->uintf->dev.power.usage_count) > 0)){
 #else
 				(dev->uintf->pm_usage_cnt > 0)){
 #endif
@@ -1584,7 +1584,7 @@ int smscusbnet_start_xmit (struct sk_buff *skb, struct net_device *net)
 #if (LINUX_VERSION_CODE > KERNEL_VERSION(2,6,18))
 #if defined(CONFIG_PM) && defined(CONFIG_USB_SUSPEND)
 #if (LINUX_VERSION_CODE > KERNEL_VERSION(2,6,31))
-    if(atomic_read(&dev->uintf->pm_usage_cnt) <= 0){
+    if(atomic_read(&dev->uintf->dev.power.usage_count) <= 0){
 #else
     if(dev->uintf->pm_usage_cnt <= 0){
 #endif
