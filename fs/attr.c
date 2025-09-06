@@ -256,8 +256,8 @@ int notify_change2(struct vfsmount *mnt, struct dentry * dentry, struct iattr * 
 }
 EXPORT_SYMBOL(notify_change2);
 
-int notify_change(struct dentry * dentry, struct iattr * attr)
+int notify_change(struct dentry *dentry, struct iattr *attr, struct inode **delegated_inode)
 {
-	return notify_change2(NULL, dentry, attr);
+	return notify_change2(NULL, dentry, attr, delegated_inode);
 }
 EXPORT_SYMBOL(notify_change);
