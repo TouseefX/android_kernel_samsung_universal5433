@@ -222,9 +222,9 @@ static struct cpufreq_interactive_tunables *tuned_parameters[NR_CPUS] = {NULL, }
 
 static struct attribute_group *get_sysfs_attr(void);
 
-static void cpufreq_interactive_timer_resched(unsigned long cpu)
+static void cpufreq_interactive_timer_resched(
+	struct cpufreq_interactive_cpuinfo *pcpu)
 {
-	struct cpufreq_interactive_cpuinfo *pcpu = &per_cpu(cpuinfo, cpu);
 	struct cpufreq_interactive_tunables *tunables =
 		pcpu->policy->governor_data;
 	unsigned long expires;
@@ -238,16 +238,12 @@ static void cpufreq_interactive_timer_resched(unsigned long cpu)
 	pcpu->cputime_speedadj = 0;
 	pcpu->cputime_speedadj_timestamp = pcpu->time_in_idle_timestamp;
 	expires = jiffies + usecs_to_jiffies(tunables->timer_rate);
-	del_timer(&pcpu->cpu_timer);
-	pcpu->cpu_timer.expires = expires;
-	add_timer_on(&pcpu->cpu_timer, cpu);
+	mod_timer_pinned(&pcpu->cpu_timer, expires);
 
 	if (tunables->timer_slack_val >= 0 &&
 	    pcpu->target_freq > pcpu->policy->min) {
 		expires += usecs_to_jiffies(tunables->timer_slack_val);
-		del_timer(&pcpu->cpu_slack_timer);
-		pcpu->cpu_slack_timer.expires = expires;
-		add_timer_on(&pcpu->cpu_slack_timer, cpu);
+		mod_timer_pinned(&pcpu->cpu_slack_timer, expires);
 	}
 
 	spin_unlock_irqrestore(&pcpu->load_lock, flags);
@@ -744,7 +740,7 @@ static void cpufreq_interactive_timer(unsigned long data)
 
 rearm:
 	if (!timer_pending(&pcpu->cpu_timer))
-		cpufreq_interactive_timer_resched(data);
+		cpufreq_interactive_timer_resched(pcpu);
 
 exit:
 	up_read(&pcpu->enable_sem);
@@ -765,7 +761,7 @@ static void cpufreq_interactive_idle_end(void)
 
 	/* Arm the timer for 1-2 ticks later if not already. */
 	if (!timer_pending(&pcpu->cpu_timer)) {
-		cpufreq_interactive_timer_resched(smp_processor_id());
+		cpufreq_interactive_timer_resched(pcpu);
 	} else if (time_after_eq(jiffies, pcpu->cpu_timer.expires)) {
 		del_timer(&pcpu->cpu_timer);
 		del_timer(&pcpu->cpu_slack_timer);
@@ -1097,19 +1093,9 @@ static ssize_t store_above_hispeed_delay(
 #ifdef CONFIG_MODE_AUTO_CHANGE
 	unsigned long flags_idx;
 #endif
-
 	new_above_hispeed_delay = get_tokenized_data(buf, &ntokens);
 	if (IS_ERR(new_above_hispeed_delay))
 		return PTR_RET(new_above_hispeed_delay);
-
-	/* Make sure frequencies are in ascending order. */
-	for (i = 3; i < ntokens; i += 2) {
-		if (new_above_hispeed_delay[i] <=
-		    new_above_hispeed_delay[i - 2]) {
-			kfree(new_above_hispeed_delay);
-			return -EINVAL;
-		}
-	}
 
 	spin_lock_irqsave(&tunables->above_hispeed_delay_lock, flags);
 #ifdef CONFIG_MODE_AUTO_CHANGE
@@ -1985,8 +1971,7 @@ static int cpufreq_governor_interactive(struct cpufreq_policy *policy,
 		if (!have_governor_per_policy())
 			common_tunables = tunables;
 
-		rc = sysfs_create_group(get_governor_parent_kobj(policy),
-				get_sysfs_attr());
+		rc = sysfs_create_group(get_governor_parent_kobj(policy), get_sysfs_attr());
 		if (rc) {
 			kfree(tunables);
 			policy->governor_data = NULL;
