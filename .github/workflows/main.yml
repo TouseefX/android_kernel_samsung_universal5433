@@ -44,6 +44,7 @@ jobs:
           make O=out lineage_gts210ltexx_defconfig
 
           # Build (produces zImage + Image)
+          mkdir -p security/tima_uevent
           make O=out -j$(nproc)
           
           ls -lh out/arch/arm/boot/ out/.config
