@@ -1899,7 +1899,7 @@ static void posix_lock_to_flock64(struct flock64 *flock, struct file_lock *fl)
 /* Report the first existing lock that would conflict with l.
  * This implements the F_GETLK command of fcntl().
  */
-int fcntl_getlk(struct file *filp, unsigned int cmd, struct flock *flock)
+int fcntl_getlk(struct file *filp, unsigned int cmd, struct flock __user *l)
 {
 	struct file_lock file_lock;
 	struct flock flock;
