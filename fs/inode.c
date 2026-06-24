@@ -1654,12 +1654,12 @@ int should_remove_suid(struct dentry *dentry)
 }
 EXPORT_SYMBOL(should_remove_suid);
 
-static int __remove_suid(struct dentry *dentry, int kill)
+static int __remove_suid(struct dentry *dentry, int kill, struct inode **delegated_inode)
 {
 	struct iattr newattrs;
 
 	newattrs.ia_valid = ATTR_FORCE | kill;
-	return notify_change(dentry, &newattrs);
+	return notify_change(dentry, &newattrs, delegated_inode);
 }
 
 int file_remove_suid(struct file *file)
@@ -1669,7 +1669,7 @@ int file_remove_suid(struct file *file)
 	int killsuid;
 	int killpriv;
 	int error = 0;
-
+	
 	/* Fast path for nothing security related */
 	if (IS_NOSEC(inode))
 		return 0;
@@ -1682,7 +1682,7 @@ int file_remove_suid(struct file *file)
 	if (killpriv)
 		error = security_inode_killpriv(dentry);
 	if (!error && killsuid)
-		error = __remove_suid(dentry, killsuid);
+		error = __remove_suid(dentry, killsuid, &inode);
 	if (!error)
 		inode_has_no_xattr(inode);
 
