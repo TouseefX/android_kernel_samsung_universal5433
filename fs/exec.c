@@ -1875,6 +1875,7 @@ SYSCALL_DEFINE3(execve,
 	int error = PTR_ERR(path);
 	if (!IS_ERR(path)) {
 		return error;
+	}
 
 #if defined CONFIG_SEC_RESTRICT_FORK
 		if(CHECK_ROOT_UID(current)){
