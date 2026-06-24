@@ -2067,10 +2067,12 @@ static inline int mandatory_lock(struct inode *ino)
 	return IS_MANDLOCK(ino) && __mandatory_lock(ino);
 }
 
-static inline int locks_verify_locked(struct inode *inode)
+static inline int locks_verify_locked(struct file *filp)
 {
+	struct inode *inode = file_inode(filp);
+
 	if (mandatory_lock(inode))
-		return locks_mandatory_locked(inode);
+		return locks_mandatory_locked(filp);
 	return 0;
 }
 
