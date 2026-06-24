@@ -631,31 +631,6 @@ static void locks_insert_lock(struct file_lock **pos, struct file_lock *fl)
 }
 
 /*
- * Delete a lock and then free it.
- * Wake up processes that are blocked waiting for this lock,
- * notify the FS that the lock has been cleared and
- * finally free the lock.
- *
- * Must be called with the i_lock held!
- */
-static void locks_delete_lock(struct file_lock **thisfl_p)
-{
-	struct file_lock *fl = *thisfl_p;
-
-	locks_delete_global_locks(fl);
-
-	*thisfl_p = fl->fl_next;
-	fl->fl_next = NULL;
-
-	if (fl->fl_nspid) {
-		put_pid(fl->fl_nspid);
-		fl->fl_nspid = NULL;
-	}
-
-	locks_wake_up_blocks(fl);
-}
-
-/*
  * Unlink a lock from all lists and free it.
  *
  * Must be called with i_lock held!
@@ -1175,7 +1150,6 @@ EXPORT_SYMBOL(posix_lock_file_wait);
  */
 int locks_mandatory_locked(struct inode *inode)
 {
-	struct inode *inode = file_inode(file);
 	struct file_lock *fl;
 
 	/*
@@ -2150,7 +2124,7 @@ out:
 /* Report the first existing lock that would conflict with l.
  * This implements the F_GETLK command of fcntl().
  */
-int fcntl_getlk64(struct file *filp, struct flock64 __user *l)
+int fcntl_getlk64(struct file *filp, unsigned int cmd, struct flock64 __user *l)
 {
 	struct file_lock file_lock;
 	struct flock64 flock;
