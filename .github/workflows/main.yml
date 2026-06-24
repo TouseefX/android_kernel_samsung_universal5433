@@ -61,5 +61,6 @@ jobs:
             out/.config
             out/System.map
             out/vmlinux
+            .config # so we can get a fresh new config
           if-no-files-found: error
           retention-days: 30
