@@ -1,10 +1,6 @@
 name: Build Kernel - gts210ltexx (universal5433)
 
 on:
-  push:
-    branches: [ "lineage-18.1", "main", "master" ]
-  pull_request:
-    branches: [ "lineage-18.1", "main", "master" ]
   workflow_dispatch:
 
 jobs:
@@ -17,12 +13,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
-
-      - name: Setup ccache
-        uses: hendrikmuhs/ccache-action@v1.2
-        with:
-          max-size: 2G
-          key: ${{ runner.os }}-ccache-gts210ltexx
 
       - name: Install build dependencies
         run: |
@@ -47,16 +37,14 @@ jobs:
         run: |
           export ARCH=arm
           export CROSS_COMPILE=arm-linux-androideabi-
-          export CC="ccache arm-linux-androideabi-gcc"
-          export CXX="ccache arm-linux-androideabi-g++"
 
           mkdir -p out
 
           # Generate .config from defconfig
-          make O=out ARCH=arm CROSS_COMPILE=${CROSS_COMPILE} lineage_gts210ltexx_defconfig
+          make O=out lineage_gts210ltexx_defconfig
 
           # Build (produces zImage + Image)
-          make O=out ARCH=arm CROSS_COMPILE=${CROSS_COMPILE} CC="${CC}" -j$(nproc)
+          make O=out -j$(nproc)
           
           ls -lh out/arch/arm/boot/ out/.config
 
