@@ -1148,8 +1148,9 @@ EXPORT_SYMBOL(posix_lock_file_wait);
  * Searches the inode's list of locks to find any POSIX locks which conflict.
  * This function is called from locks_verify_locked() only.
  */
-int locks_mandatory_locked(struct inode *inode)
+int locks_mandatory_locked(struct file *filp)
 {
+	struct inode *inode = file_inode(filp);
 	struct file_lock *fl;
 
 	/*
@@ -1160,7 +1161,7 @@ int locks_mandatory_locked(struct inode *inode)
 		if (!IS_POSIX(fl))
 			continue;
 		if (fl->fl_owner != current->files &&
-		    fl->fl_owner != file)
+		    fl->fl_owner != filp)
 			break;
 	}
 	spin_unlock(&inode->i_lock);
@@ -1898,7 +1899,7 @@ static void posix_lock_to_flock64(struct flock64 *flock, struct file_lock *fl)
 /* Report the first existing lock that would conflict with l.
  * This implements the F_GETLK command of fcntl().
  */
-int fcntl_getlk(struct file *filp, struct flock __user *l)
+int fcntl_getlk(struct file *filp, unsigned int cmd, struct flock *flock)
 {
 	struct file_lock file_lock;
 	struct flock flock;
