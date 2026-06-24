@@ -1,11 +1,17 @@
 name: Build Kernel - gts210ltexx (universal5433)
 
 on:
+  push:
+    branches: [ "lineage-18.1", "main", "master" ]
+  pull_request:
+    branches: [ "lineage-18.1", "main", "master" ]
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    container: ubuntu:20.04          # ← This fixes the seqlock/dep_map error
+
     steps:
       - name: Checkout kernel source
         uses: actions/checkout@v4
@@ -20,8 +26,8 @@ jobs:
 
       - name: Install build dependencies
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y \
+          apt-get update -qq
+          apt-get install -y \
             bc \
             bison \
             build-essential \
@@ -45,23 +51,26 @@ jobs:
           export CXX="ccache arm-linux-androideabi-g++"
 
           mkdir -p out
-          
+
+          # Generate .config from defconfig
           make O=out ARCH=arm CROSS_COMPILE=${CROSS_COMPILE} lineage_gts210ltexx_defconfig
-          
+
+          # Build (produces zImage + Image)
           make O=out ARCH=arm CROSS_COMPILE=${CROSS_COMPILE} CC="${CC}" -j$(nproc)
           
-          ls -lh out/arch/arm/boot/
+          ls -lh out/arch/arm/boot/ out/.config
 
       - name: Show ccache stats
         run: ccache -s
 
-      - name: Upload built kernel (zImage + Image)
+      - name: Upload kernel + config
         uses: actions/upload-artifact@v4
         with:
           name: gts210ltexx-kernel
           path: |
             out/arch/arm/boot/zImage
             out/arch/arm/boot/Image
+            out/.config
             out/System.map
             out/vmlinux
           if-no-files-found: error
