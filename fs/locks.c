@@ -630,6 +630,34 @@ static void locks_insert_lock(struct file_lock **pos, struct file_lock *fl)
 	locks_insert_global_locks(fl);
 }
 
+/**
+ * locks_delete_lock - Delete a lock and then free it.
+ * @thisfl_p: pointer that points to the fl_next field of the previous
+ * 	      inode->i_flock list entry
+ *
+ * Unlink a lock from all lists and free the namespace reference, but don't
+ * free it yet. Wake up processes that are blocked waiting for this lock and
+ * notify the FS that the lock has been cleared.
+ *
+ * Must be called with the i_lock held!
+ */
+static void locks_unlink_lock(struct file_lock **thisfl_p)
+{
+	struct file_lock *fl = *thisfl_p;
+
+	locks_delete_global_locks(fl);
+
+	*thisfl_p = fl->fl_next;
+	fl->fl_next = NULL;
+
+	if (fl->fl_nspid) {
+		put_pid(fl->fl_nspid);
+		fl->fl_nspid = NULL;
+	}
+
+	locks_wake_up_blocks(fl);
+}
+
 /*
  * Unlink a lock from all lists and free it.
  *
