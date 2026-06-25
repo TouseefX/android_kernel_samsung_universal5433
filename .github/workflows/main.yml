@@ -42,7 +42,7 @@ jobs:
 
           # Generate .config from defconfig
           make O=out lineage_gts210ltexx_defconfig
-          cp .config out/config
+          cp "$(find . -name .config -print -quit)" out/config
 
           # Build (produces zImage + Image)
           mkdir -p security/tima_uevent
