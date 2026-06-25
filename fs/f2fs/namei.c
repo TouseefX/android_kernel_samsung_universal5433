@@ -747,6 +747,73 @@ out:
 	return err;
 }
 
+static void *f2fs_encrypted_follow_link(struct dentry *dentry,
+						struct nameidata *nd)
+{
+	struct page *cpage = NULL;
+	char *caddr, *paddr = NULL;
+	struct fscrypt_str cstr = FSTR_INIT(NULL, 0);
+	struct fscrypt_str pstr = FSTR_INIT(NULL, 0);
+	struct fscrypt_symlink_data *sd;
+	struct inode *inode = d_inode(dentry);
+	u32 max_size = inode->i_sb->s_blocksize;
+	int res;
+
+	res = fscrypt_get_encryption_info(inode);
+	if (res)
+		return ERR_PTR(res);
+
+	cpage = read_mapping_page(inode->i_mapping, 0, NULL);
+	if (IS_ERR(cpage))
+		return ERR_CAST(cpage);
+	caddr = kmap(cpage);
+
+	/* Symlink is encrypted */
+	sd = (struct fscrypt_symlink_data *)caddr;
+	cstr.name = sd->encrypted_path;
+	cstr.len = le16_to_cpu(sd->len);
+
+	/* this is broken symlink case */
+	if (unlikely(cstr.len == 0)) {
+		res = -ENOENT;
+		goto errout;
+	}
+
+	if ((cstr.len + sizeof(struct fscrypt_symlink_data) - 1) > max_size) {
+		/* Symlink data on the disk is corrupted */
+		res = -EIO;
+		goto errout;
+	}
+	res = fscrypt_fname_alloc_buffer(inode, cstr.len, &pstr);
+	if (res)
+		goto errout;
+
+	res = fscrypt_fname_disk_to_usr(inode, 0, 0, &cstr, &pstr);
+	if (res)
+		goto errout;
+
+	/* this is broken symlink case */
+	if (unlikely(pstr.name[0] == 0)) {
+		res = -ENOENT;
+		goto errout;
+	}
+
+	paddr = pstr.name;
+
+	/* Null-terminate the name */
+	paddr[pstr.len] = '\0';
+	nd_set_link(nd, paddr);
+
+	kunmap(cpage);
+	page_cache_release(cpage);
+	return NULL;
+errout:
+	fscrypt_fname_free_buffer(&pstr);
+	kunmap(cpage);
+	page_cache_release(cpage);
+	return ERR_PTR(res);
+}
+
 static int f2fs_cross_rename(struct inode *old_dir, struct dentry *old_dentry,
 			     struct inode *new_dir, struct dentry *new_dentry)
 {
@@ -895,85 +962,20 @@ static int f2fs_rename2(struct inode *old_dir, struct dentry *old_dentry,
 			struct inode *new_dir, struct dentry *new_dentry,
 			unsigned int flags)
 {
-	if (flags & ~(RENAME_NOREPLACE | RENAME_EXCHANGE | RENAME_WHITEOUT))
+	if (flags & ~(RENAME_NOREPLACE | RENAME_EXCHANGE))
 		return -EINVAL;
-
+	
+	if (flags & RENAME_NOREPLACE) {
+		if (d_really_is_positive(new_dentry))
+			return -EEXIST;
+	}
+	
 	if (flags & RENAME_EXCHANGE) {
 		return f2fs_cross_rename(old_dir, old_dentry,
 					 new_dir, new_dentry);
 	}
-	/*
-	 * VFS has already handled the new dentry existence case,
-	 * here, we just deal with "RENAME_NOREPLACE" as regular rename.
-	 */
-	return f2fs_rename(old_dir, old_dentry, new_dir, new_dentry, flags);
-}
-
-static void *f2fs_encrypted_follow_link(struct dentry *dentry,
-						struct nameidata *nd)
-{
-	struct page *cpage = NULL;
-	char *caddr, *paddr = NULL;
-	struct fscrypt_str cstr = FSTR_INIT(NULL, 0);
-	struct fscrypt_str pstr = FSTR_INIT(NULL, 0);
-	struct fscrypt_symlink_data *sd;
-	struct inode *inode = d_inode(dentry);
-	u32 max_size = inode->i_sb->s_blocksize;
-	int res;
-
-	res = fscrypt_get_encryption_info(inode);
-	if (res)
-		return ERR_PTR(res);
-
-	cpage = read_mapping_page(inode->i_mapping, 0, NULL);
-	if (IS_ERR(cpage))
-		return ERR_CAST(cpage);
-	caddr = kmap(cpage);
-
-	/* Symlink is encrypted */
-	sd = (struct fscrypt_symlink_data *)caddr;
-	cstr.name = sd->encrypted_path;
-	cstr.len = le16_to_cpu(sd->len);
-
-	/* this is broken symlink case */
-	if (unlikely(cstr.len == 0)) {
-		res = -ENOENT;
-		goto errout;
-	}
-
-	if ((cstr.len + sizeof(struct fscrypt_symlink_data) - 1) > max_size) {
-		/* Symlink data on the disk is corrupted */
-		res = -EIO;
-		goto errout;
-	}
-	res = fscrypt_fname_alloc_buffer(inode, cstr.len, &pstr);
-	if (res)
-		goto errout;
-
-	res = fscrypt_fname_disk_to_usr(inode, 0, 0, &cstr, &pstr);
-	if (res)
-		goto errout;
-
-	/* this is broken symlink case */
-	if (unlikely(pstr.name[0] == 0)) {
-		res = -ENOENT;
-		goto errout;
-	}
-
-	paddr = pstr.name;
-
-	/* Null-terminate the name */
-	paddr[pstr.len] = '\0';
-	nd_set_link(nd, paddr);
-
-	kunmap(cpage);
-	page_cache_release(cpage);
-	return NULL;
-errout:
-	fscrypt_fname_free_buffer(&pstr);
-	kunmap(cpage);
-	page_cache_release(cpage);
-	return ERR_PTR(res);
+	
+	return f2fs_rename(old_dir, old_dentry, new_dir, new_dentry);
 }
 
 const struct inode_operations f2fs_encrypted_symlink_inode_operations = {
