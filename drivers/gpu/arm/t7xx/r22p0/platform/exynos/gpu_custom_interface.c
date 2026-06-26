@@ -42,6 +42,10 @@
 #define GPU_MAX_VOLT		925000
 #define GPU_MIN_VOLT		500000
 #define GPU_VOLT_STEP		6250
+#elif defined(CONFIG_SOC_EXYNOS5433)
+#define GPU_MAX_VOLT		1100000
+#define GPU_MIN_VOLT		600000
+#define GPU_VOLT_STEP		6250
 #else
 #error "Please define gpu voltage ranges for current SoC."
 #endif
