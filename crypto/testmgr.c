@@ -27,6 +27,7 @@
 #include <linux/slab.h>
 #include <linux/string.h>
 #include <crypto/rng.h>
+#include <crypto/hash.h>
 #ifdef CONFIG_CRYPTO_DRBG
 #include <crypto/drbg.h>
 #endif
@@ -1415,8 +1416,8 @@ static int alg_test_crc32c(const struct alg_test_desc *desc,
 	}
 
 	do {
-		SHASH_DESC_ON_STACK(shash, tfm);
 		u32 *ctx = (u32 *)shash_desc_ctx(shash);
+		SHASH_DESC_ON_STACK(shash, tfm);
 
 		shash->tfm = tfm;
 		shash->flags = 0;
