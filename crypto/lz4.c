@@ -23,8 +23,8 @@
 #include <linux/crypto.h>
 #include <linux/vmalloc.h>
 #include <linux/lz4.h>
-#include <crypto/internal/scompress.h>
 #include <linux/err.h>
+#include <crypto/internal/scompress.h>
 
 struct lz4_ctx {
 	void *lz4_comp_mem;
