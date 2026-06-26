@@ -1416,8 +1416,10 @@ static int alg_test_crc32c(const struct alg_test_desc *desc,
 	}
 
 	do {
-		u32 *ctx = (u32 *)shash_desc_ctx(shash);
+		u32 *ctx;
 		SHASH_DESC_ON_STACK(shash, tfm);
+		
+		ctx = (u32 *)shash_desc_ctx(shash);
 
 		shash->tfm = tfm;
 		shash->flags = 0;

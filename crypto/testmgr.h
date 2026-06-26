@@ -27720,6 +27720,10 @@ static struct hash_testvec bfin_crc_tv_template[] = {
 #define LZ4_COMP_TEST_VECTORS 1
 #define LZ4_DECOMP_TEST_VECTORS 1
 
+#define LZ4HC_COMP_TEST_VECTORS 1
+#define LZ4HC_DECOMP_TEST_VECTORS 1
+
+
 static struct comp_testvec lz4_comp_tv_template[] = {
 	{
 		.inlen	= 255,
