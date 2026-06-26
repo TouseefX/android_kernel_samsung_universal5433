@@ -22,6 +22,7 @@
 #include <linux/vmalloc.h>
 #include <linux/mm.h>
 #include <linux/lzo.h>
+#include <linux/err.h>
 #include <crypto/internal/scompress.h>
 
 struct lzo_ctx {
