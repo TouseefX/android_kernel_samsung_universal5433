@@ -22,6 +22,7 @@
 #include <linux/crypto.h>
 #include <linux/vmalloc.h>
 #include <linux/lz4.h>
+#include <linux/err.h>
 #include <crypto/internal/scompress.h>
 
 struct lz4hc_ctx {
