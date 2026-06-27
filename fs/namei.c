@@ -2428,11 +2428,7 @@ kern_path_mountpoint(int dfd, const char *name, struct path *path,
 }
 EXPORT_SYMBOL(kern_path_mountpoint);
 
-/*
- * It's inline, so penalty for filesystems that don't use sticky bit is
- * minimal.
- */
-static inline int __check_sticky(struct inode *dir, struct inode *inode)
+int __check_sticky(struct inode *dir, struct inode *inode)
 {
 	kuid_t fsuid = current_fsuid();
 	
@@ -2443,6 +2439,7 @@ static inline int __check_sticky(struct inode *dir, struct inode *inode)
 	return !capable_wrt_inode_uidgid(inode, CAP_FOWNER);
 }
 EXPORT_SYMBOL(__check_sticky);
+
 /*
  *	Check whether we can remove a link victim from directory dir, check
  *  whether the type of victim is right.
