@@ -2423,6 +2423,7 @@ extern int notify_change2(struct vfsmount *, struct dentry *, struct iattr *, st
 extern int inode_permission(struct inode *, int);
 extern int inode_permission2(struct vfsmount *, struct inode *, int);
 extern int generic_permission(struct inode *, int);
+int __check_sticky(struct inode *dir, struct inode *inode);
 
 static inline bool execute_ok(struct inode *inode)
 {
@@ -2897,15 +2898,10 @@ int __init get_filesystem_list(char *buf);
  */
 static inline int check_sticky(struct inode *dir, struct inode *inode)
 {
-	kuid_t fsuid = current_fsuid();
-
 	if (!(dir->i_mode & S_ISVTX))
 		return 0;
-	if (uid_eq(inode->i_uid, fsuid))
-		return 0;
-	if (uid_eq(dir->i_uid, fsuid))
-		return 0;
-	return !capable_wrt_inode_uidgid(inode, CAP_FOWNER);
+	
+	return __check_sticky(dir, inode);
 }
 
 static inline int is_sxid(umode_t mode)
