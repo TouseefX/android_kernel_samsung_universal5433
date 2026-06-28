@@ -28,7 +28,7 @@ jobs:
             wget \
             xz-utils
 
-      - name: Download toolchain (arter97/arm-linux-androideabi-4.9)
+      - name: Download toolchain (OpenCentauri/arm-linux-gnueabihf-gcc)
         run: |
           git clone --depth=1 https://github.com/OpenCentauri/arm-linux-gnueabihf-gcc.git toolchain
           echo "$(pwd)/toolchain/bin" >> $GITHUB_PATH
