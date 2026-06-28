@@ -30,13 +30,13 @@ jobs:
 
       - name: Download toolchain (arter97/arm-linux-androideabi-4.9)
         run: |
-          git clone --depth=1 https://github.com/arter97/arm-linux-androideabi-4.9.git toolchain
+          git clone --depth=1 https://github.com/OpenCentauri/arm-linux-gnueabihf-gcc.git toolchain
           echo "$(pwd)/toolchain/bin" >> $GITHUB_PATH
 
       - name: Build kernel (gts210ltexx)
         run: |
           export ARCH=arm
-          export CROSS_COMPILE=arm-linux-androideabi-
+          export CROSS_COMPILE=arm-linux-gnueabihf-
 
           mkdir -p out
 
@@ -45,7 +45,6 @@ jobs:
           cp "$(find . -name .config -print -quit)" out/config
 
           # Build (produces zImage + Image)
-          mkdir -p security/tima_uevent
           make O=out -j$(nproc)
           
           ls -lh out/arch/arm/boot/ out/.config
