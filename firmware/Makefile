@@ -220,8 +220,9 @@ quiet_cmd_h16tofw  = H16TOFW $@
       cmd_h16tofw  = $(objtree)/$(obj)/ihex2fw -w $< $@
 
 quiet_cmd_fwbin = MK_FW   $@
-      cmd_fwbin = FWNAME="$(patsubst firmware/%.gen.S,%,$@)";		     \
-		  FWSTR="$(subst /,_,$(subst .,_,$(subst -,_,$(patsubst	     \
+      cmd_fwbin = mkdir -p $(dir $@); \
+		  FWNAME="$$   (patsubst firmware/%.gen.S,%,   $$@)";		     \
+		  FWSTR="$$   (subst /,_,   $$(subst .,_,$$   (subst -,_,   $$(patsubst	     \
 				firmware/%.gen.S,%,$@))))";		     \
 		  ASM_WORD=$(if $(CONFIG_64BIT),.quad,.long);		     \
 		  ASM_ALIGN=$(if $(CONFIG_64BIT),3,2);			     \
