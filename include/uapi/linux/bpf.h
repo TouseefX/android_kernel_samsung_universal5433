@@ -9,6 +9,7 @@
 
 #include <linux/types.h>
 #include <linux/bpf_common.h>
+#include <linux/err.h>
 
 /* Extended instruction set based on top of classic BPF */
 
