@@ -6,8 +6,6 @@
 #ifndef _LINUX_RANDOM_H
 #define _LINUX_RANDOM_H
 
-#include <linux/once.h>
-
 #include <uapi/linux/random.h>
 
 
