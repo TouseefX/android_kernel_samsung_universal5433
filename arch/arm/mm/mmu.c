@@ -1037,19 +1037,19 @@ void mark_data_noexec(void)
 	size = PAGE_ALIGN((unsigned long)_text) - start;
 	pr_debug("Set kernel data: %lx - %lx to noexec\n",
 			start, start + size);
-	set_memory_xn(start, size >> PAGE_SHIFT);
+	set_memory_nx(start, size >> PAGE_SHIFT);
 
 	start = PAGE_ALIGN((unsigned long)__start_rodata);
 	size = PAGE_ALIGN((unsigned long)__end_rodata) - start;
 	pr_debug("Set kernel data: %lx - %lx to noexec\n",
 			start, start + size);
-	set_memory_xn(start, size >> PAGE_SHIFT);
+	set_memory_nx(start, size >> PAGE_SHIFT);
 
 	start = PFN_ALIGN((unsigned long)__end_rodata);
 	size = ALIGN(start, PMD_SIZE) - start;
 	pr_debug("Set kernel data: %lx - %lx to noexec\n",
 			start, start + size);
-	set_memory_xn(start, size >> PAGE_SHIFT);
+	set_memory_nx(start, size >> PAGE_SHIFT);
 }
 #endif
 
