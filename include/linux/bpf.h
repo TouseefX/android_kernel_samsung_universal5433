@@ -11,7 +11,7 @@
 #include <linux/workqueue.h>
 #include <linux/file.h>
 #include <linux/percpu.h>
-#include <linux/cacheflush.h>
+#include <asm/cacheflush.h>
 
 struct perf_event;
 struct bpf_map;
