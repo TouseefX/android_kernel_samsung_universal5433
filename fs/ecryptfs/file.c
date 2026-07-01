@@ -144,9 +144,7 @@ static int ecryptfs_readdir(struct file *file, void *dirent, filldir_t filldir)
 		.filldir = filldir,
 		.filldir_called = 0,
 		.entries_written = 0,
-		.ctx = {
-			.actor = ecryptfs_filldir
-		}
+		.ctx.actor = ecryptfs_filldir
 	};
 
 	lower_file = ecryptfs_file_to_lower(file);
