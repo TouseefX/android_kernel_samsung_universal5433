@@ -26,6 +26,9 @@
 #include <linux/delay.h>
 #include <linux/input.h>
 #include <linux/input/mt.h>
+#ifdef CONFIG_TOUCHSCREEN_DOUBLETAP2WAKE
+#include <linux/input/doubletap2wake.h>
+#endif
 #include <linux/gpio.h>
 #include <linux/regulator/consumer.h>
 #include <linux/of.h>
@@ -4258,6 +4261,46 @@ out:
 }
 #endif
 
+#ifdef CONFIG_TOUCHSCREEN_DOUBLETAP2WAKE
+static void synaptics_rmi4_dt2w_irq_wake(struct synaptics_rmi4_data *rmi4_data,
+		bool enable)
+{
+	int retval;
+
+	if (enable) {
+		if (rmi4_data->dt2w_irq_wake_enabled)
+			return;
+
+		retval = enable_irq_wake(rmi4_data->i2c_client->irq);
+		if (retval) {
+			tsp_debug_err(true, &rmi4_data->i2c_client->dev,
+					"%s: Failed to enable irq wake, error = %d\n",
+					__func__, retval);
+			return;
+		}
+
+		rmi4_data->dt2w_irq_wake_enabled = true;
+		tsp_debug_info(true, &rmi4_data->i2c_client->dev,
+				"%s: irq wake enabled for dt2w\n", __func__);
+	} else {
+		if (!rmi4_data->dt2w_irq_wake_enabled)
+			return;
+
+		retval = disable_irq_wake(rmi4_data->i2c_client->irq);
+		if (retval) {
+			tsp_debug_err(true, &rmi4_data->i2c_client->dev,
+					"%s: Failed to disable irq wake, error = %d\n",
+					__func__, retval);
+			return;
+		}
+
+		rmi4_data->dt2w_irq_wake_enabled = false;
+		tsp_debug_info(true, &rmi4_data->i2c_client->dev,
+				"%s: irq wake disabled for dt2w\n", __func__);
+	}
+}
+#endif
+
 static int synaptics_rmi4_stop_device(struct synaptics_rmi4_data *rmi4_data)
 {
 	const struct synaptics_rmi4_platform_data *pdata = rmi4_data->board;
@@ -4377,6 +4420,15 @@ static void synaptics_rmi4_input_close(struct input_dev *dev)
 
 	tsp_debug_dbg(false, &rmi4_data->i2c_client->dev, "%s\n", __func__);
 
+#ifdef CONFIG_TOUCHSCREEN_DOUBLETAP2WAKE
+	if (dt2w_is_enabled()) {
+		synpatics_rmi4_release_all_event(rmi4_data, RELEASE_TYPE_ALL);
+		tsp_debug_info(true, &rmi4_data->i2c_client->dev,
+				"%s: keeping touch powered for dt2w\n", __func__);
+		return;
+	}
+#endif
+
 #ifdef USE_SENSOR_SLEEP
 	if (rmi4_data->use_deepsleep)
 		synaptics_rmi4_sensor_sleep(rmi4_data);
@@ -4407,6 +4459,16 @@ static void synaptics_rmi4_early_suspend(struct early_suspend *h)
 
 	tsp_debug_dbg(false, &rmi4_data->i2c_client->dev, "%s\n", __func__);
 
+#ifdef CONFIG_TOUCHSCREEN_DOUBLETAP2WAKE
+	if (dt2w_is_enabled()) {
+		synpatics_rmi4_release_all_event(rmi4_data, RELEASE_TYPE_ALL);
+		synaptics_rmi4_dt2w_irq_wake(rmi4_data, true);
+		tsp_debug_info(true, &rmi4_data->i2c_client->dev,
+				"%s: keeping touch active for dt2w\n", __func__);
+		return;
+	}
+#endif
+
 #ifdef USE_SENSOR_SLEEP
 	if (rmi4_data->use_deepsleep)
 		synaptics_rmi4_sensor_sleep(rmi4_data);
@@ -4434,6 +4496,16 @@ static void synaptics_rmi4_late_resume(struct early_suspend *h)
 				early_suspend);
 
 	tsp_debug_dbg(false, &rmi4_data->i2c_client->dev, "%s\n", __func__);
+
+#ifdef CONFIG_TOUCHSCREEN_DOUBLETAP2WAKE
+	if (rmi4_data->dt2w_irq_wake_enabled) {
+		synaptics_rmi4_dt2w_irq_wake(rmi4_data, false);
+		synpatics_rmi4_release_all_event(rmi4_data, RELEASE_TYPE_ALL);
+		tsp_debug_info(true, &rmi4_data->i2c_client->dev,
+				"%s: touch was already active for dt2w\n", __func__);
+		return;
+	}
+#endif
 
 #ifdef USE_SENSOR_SLEEP
 	if (rmi4_data->use_deepsleep) {
@@ -4469,6 +4541,17 @@ static int synaptics_rmi4_suspend(struct device *dev)
 
 	mutex_lock(&rmi4_data->input_dev->mutex);
 
+#ifdef CONFIG_TOUCHSCREEN_DOUBLETAP2WAKE
+	if (dt2w_is_enabled()) {
+		synpatics_rmi4_release_all_event(rmi4_data, RELEASE_TYPE_ALL);
+		synaptics_rmi4_dt2w_irq_wake(rmi4_data, true);
+		tsp_debug_info(true, &rmi4_data->i2c_client->dev,
+				"%s: keeping touch active for dt2w\n", __func__);
+		mutex_unlock(&rmi4_data->input_dev->mutex);
+		return 0;
+	}
+#endif
+
 	if (rmi4_data->input_dev->users) {
 #ifdef USE_SENSOR_SLEEP
 		if (rmi4_data->use_deepsleep)
@@ -4499,6 +4582,17 @@ static int synaptics_rmi4_resume(struct device *dev)
 	tsp_debug_dbg(false, &rmi4_data->i2c_client->dev, "%s\n", __func__);
 
 	mutex_lock(&rmi4_data->input_dev->mutex);
+
+#ifdef CONFIG_TOUCHSCREEN_DOUBLETAP2WAKE
+	if (rmi4_data->dt2w_irq_wake_enabled) {
+		synaptics_rmi4_dt2w_irq_wake(rmi4_data, false);
+		synpatics_rmi4_release_all_event(rmi4_data, RELEASE_TYPE_ALL);
+		tsp_debug_info(true, &rmi4_data->i2c_client->dev,
+				"%s: touch was already active for dt2w\n", __func__);
+		mutex_unlock(&rmi4_data->input_dev->mutex);
+		return 0;
+	}
+#endif
 
 	if (rmi4_data->input_dev->users) {
 #ifdef USE_SENSOR_SLEEP

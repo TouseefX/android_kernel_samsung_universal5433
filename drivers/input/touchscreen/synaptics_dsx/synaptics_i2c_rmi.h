@@ -973,6 +973,9 @@ struct synaptics_rmi4_data {
 	bool flash_prog_mode;
 	bool irq_enabled;
 	bool touch_stopped;
+#ifdef CONFIG_TOUCHSCREEN_DOUBLETAP2WAKE
+	bool dt2w_irq_wake_enabled;
+#endif
 	bool fingers_on_2d;
 	bool f51_finger;
 	bool sensor_sleep;
