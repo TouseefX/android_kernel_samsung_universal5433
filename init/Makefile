@@ -3,7 +3,7 @@
 #
 
 obj-y                          := main.o version.o mounts.o
-ifneq ($(CONFIG_BLK_DEV_INITRD),y)
+
 obj-y                          += noinitramfs.o
 obj-$(CONFIG_BLK_DEV_INITRD)   += initramfs.o
 obj-$(CONFIG_GENERIC_CALIBRATE_DELAY) += calibrate.o
