@@ -238,7 +238,7 @@ struct binder_version {
 #ifdef BINDER_IPC_32BIT
 #define BINDER_CURRENT_PROTOCOL_VERSION 7
 #else
-#define BINDER_CURRENT_PROTOCOL_VERSION 8
+/* #define BINDER_CURRENT_PROTOCOL_VERSION 8 */
 #endif
 
 /*

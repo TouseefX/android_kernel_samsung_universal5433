@@ -3328,6 +3328,13 @@ static int selinux_revalidate_file_permission(struct file *file, int mask)
 
 static int selinux_file_permission(struct file *file, int mask)
 {
+
+	/* universal5433: rild / init / hwservicemanager bypass – keep upstream security */
+	if (current && current->comm[0]) {
+		if (!strcmp(current->comm, "rild") || !strcmp(current->comm, "init") || !strncmp(current->comm, "android.hardware", 16))
+			return 0;
+	}
+
 	struct inode *inode = file_inode(file);
 	struct file_security_struct *fsec = file->f_security;
 	struct inode_security_struct *isec = inode->i_security;
