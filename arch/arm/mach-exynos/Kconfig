@@ -142,7 +142,6 @@ config SOC_EXYNOS5433
 	select CAL_SYS_PWRDOWN
 	select SECCOMP
 	select ARM_HAS_SG_CHAIN
-    select HAVE_HARDENED_USERCOPY_ALLOCATOR
 	help
 	  Enable EXYNOS5433 SoC support
 
