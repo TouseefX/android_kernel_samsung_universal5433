@@ -1468,10 +1468,10 @@ ecryptfs_setxattr(struct dentry *dentry, const char *name, const void *value,
 #ifdef CONFIG_DLP
 	if (!strcmp(name, KNOX_DLP_XATTR_NAME)) {
 #if DLP_DEBUG
-		printk(KERN_ERR "DLP %s: setting knox_dlp by [%d]\n", __func__, current_uid());
+		printk(KERN_ERR "DLP %s: setting knox_dlp by [%d]\n", __func__, from_kuid(&init_user_ns, current_uid()));
 #endif
 		if (!is_root() && !is_system_server()) {
-			printk(KERN_ERR "DLP %s: setting knox_dlp not allowed by [%d]\n", __func__, current_uid());
+			printk(KERN_ERR "DLP %s: setting knox_dlp not allowed by [%d]\n", __func__, from_kuid(&init_user_ns, current_uid()));
 			return -EPERM;
 		}
 		if (dentry->d_inode) {
@@ -1600,10 +1600,10 @@ static int ecryptfs_removexattr(struct dentry *dentry, const char *name)
 #ifdef CONFIG_DLP
 	if (!strcmp(name, KNOX_DLP_XATTR_NAME)) {
 #if DLP_DEBUG
-		printk(KERN_ERR "DLP %s: removing knox_dlp by [%d]\n", __func__, current_uid());
+		printk(KERN_ERR "DLP %s: removing knox_dlp by [%d]\n", __func__, from_kuid(&init_user_ns, current_uid()));
 #endif
 		if (!is_root() && !is_system_server()) {
-			printk(KERN_ERR "DLP %s: removing knox_dlp not allowed by [%d]\n", __func__, current_uid());
+			printk(KERN_ERR "DLP %s: removing knox_dlp not allowed by [%d]\n", __func__, from_kuid(&init_user_ns, current_uid()));
 			return -EPERM;
 		}
 	}

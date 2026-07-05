@@ -260,7 +260,7 @@ kek_t *get_kek(int engine_id, int kek_type, int *rc) {
 	kek_t *kek;
 	int userid = from_kuid(&init_user_ns, current_uid()) / PER_USER_RANGE;
 
-	KEK_PACK_LOGD("entered [%d]\n", current_uid());
+	KEK_PACK_LOGD("entered [%d]\n", from_kuid(&init_user_ns, current_uid()));
 
 	pack = find_kek_pack(engine_id);
 	if(pack == NULL) {
