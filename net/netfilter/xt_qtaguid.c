@@ -1698,7 +1698,8 @@ static bool qtaguid_mt(const struct sk_buff *skb, struct xt_action_param *par)
 			sk->sk_socket ? sk->sk_socket->file : (void *)-1LL);
 		filp = sk->sk_socket ? sk->sk_socket->file : NULL;
 		MT_DEBUG("qtaguid[%d]: filp...uid=%u\n",
-			par->hooknum, filp ? filp->f_cred->fsuid : -1);
+			par->hooknum,
+			filp ? from_kuid(&init_user_ns, filp->f_cred->fsuid) : (uid_t)-1);
 	}
 
 	if (sk == NULL || sk->sk_socket == NULL) {
@@ -1739,7 +1740,7 @@ static bool qtaguid_mt(const struct sk_buff *skb, struct xt_action_param *par)
 	 * For now we only do iface stats when the uid-owner is not requested
 	 */
 	if (!(info->match & XT_QTAGUID_UID))
-		account_for_uid(skb, sk, sock_uid, par);
+		account_for_uid(skb, sk, from_kuid(&init_user_ns, sock_uid), par);
 
 	/*
 	 * The following two tests fail the match when:
@@ -1759,15 +1760,20 @@ static bool qtaguid_mt(const struct sk_buff *skb, struct xt_action_param *par)
 			res = false;
 			goto put_sock_ret_res;
 		}
-	if (info->match & XT_QTAGUID_GID)
-		if ((filp->f_cred->fsgid >= info->gid_min &&
-				filp->f_cred->fsgid <= info->gid_max) ^
-			!(info->invert & XT_QTAGUID_GID)) {
+	}
+	if (info->match & XT_QTAGUID_GID) {
+		kgid_t gid_min = make_kgid(&init_user_ns, info->gid_min);
+		kgid_t gid_max = make_kgid(&init_user_ns, info->gid_max);
+
+		if ((gid_gte(filp->f_cred->fsgid, gid_min) &&
+		     gid_lte(filp->f_cred->fsgid, gid_max)) ^
+		    !(info->invert & XT_QTAGUID_GID)) {
 			MT_DEBUG("qtaguid[%d]: leaving gid not matching\n",
 				par->hooknum);
 			res = false;
 			goto put_sock_ret_res;
 		}
+	}
 
 	MT_DEBUG("qtaguid[%d]: leaving matched\n", par->hooknum);
 	res = true;
@@ -2397,7 +2403,8 @@ static int ctrl_cmd_untag(const char *input)
 		pr_warn_once("qtaguid: %s(): "
 			     "User space forgot to open /dev/xt_qtaguid? "
 			     "pid=%u tgid=%u uid=%u\n", __func__,
-			     current->pid, current->tgid, current_fsuid());
+			     current->pid, current->tgid,
+			     from_kuid(&init_user_ns, current_fsuid()));
 	else
 		list_del(&sock_tag_entry->list);
 	spin_unlock_bh(&uid_tag_data_tree_lock);
