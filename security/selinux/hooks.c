@@ -6575,7 +6575,7 @@ static void selinux_bpf_prog_free(struct bpf_prog_aux *aux)
 }
 #endif
 
-static struct security_operations selinux_ops = {
+struct security_operations selinux_ops = {
 	.name =				"selinux",
 #ifdef CONFIG_BPF_SYSCALL
 	.bpf =                          selinux_bpf,
