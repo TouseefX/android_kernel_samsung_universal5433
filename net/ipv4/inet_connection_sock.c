@@ -118,7 +118,7 @@ int inet_csk_get_port(struct sock *sk, unsigned short snum)
 again:
 		inet_get_local_port_range(&low, &high);
 		remaining = (high - low) + 1;
-		smallest_rover = rover = net_random() % remaining + low;
+		smallest_rover = rover = prandom_u32() % remaining + low;
 
 		smallest_size = -1;
 		do {
@@ -689,6 +689,8 @@ struct sock *inet_csk_clone_lock(const struct sock *sk,
 		inet_sk(newsk)->inet_num = ntohs(inet_rsk(req)->loc_port);
 		inet_sk(newsk)->inet_sport = inet_rsk(req)->loc_port;
 		newsk->sk_write_space = sk_stream_write_space;
+		atomic64_set(&newsk->sk_cookie,
+			     atomic64_read(&inet_rsk(req)->ir_cookie));
 
 		inet_sk(newsk)->mc_list = NULL;
 
