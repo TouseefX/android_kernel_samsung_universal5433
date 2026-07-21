@@ -9,10 +9,15 @@ jobs:
     container: ubuntu:20.04          # ← This fixes the seqlock/dep_map error
 
     steps:
+      - name: Install Git
+        run: |
+          apt-get update && apt-get install -y git
+      
       - name: Checkout kernel source
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          fetch-depth: 0
+          submodules: recursive
 
       - name: Install build dependencies
         run: |
