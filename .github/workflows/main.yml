@@ -1,4 +1,4 @@
-name: Build Kernel - gts210ltexx (universal5433)
+name: Build Kernel - (universal5433)
 
 on:
   workflow_dispatch:
@@ -7,6 +7,11 @@ jobs:
   build:
     runs-on: ubuntu-latest
     container: ubuntu:20.04          # ← This fixes the seqlock/dep_map error
+    
+    strategy:
+      fail-fast: false               # Prevents one failing device from stopping the other
+      matrix:
+        device: [gts210wifi, gts210ltexx]
 
     steps:
       - name: Install Git
@@ -38,15 +43,15 @@ jobs:
           git clone --depth=1 https://github.com/OpenCentauri/arm-linux-gnueabihf-gcc.git toolchain
           echo "$(pwd)/toolchain/bin" >> $GITHUB_PATH
 
-      - name: Build kernel (gts210ltexx)
+      - name: Build kernel
         run: |
           export ARCH=arm
           export CROSS_COMPILE=arm-linux-gnueabihf-
 
           mkdir -p out
 
-          # Generate .config from defconfig
-          make O=out lineage_gts210ltexx_defconfig
+          # Generate .config using the current matrix device context
+          make O=out lineage_${{ matrix.device }}_defconfig
           cp "$(find . -name .config -print -quit)" out/config
 
           # Build (produces zImage + Image)
@@ -60,7 +65,7 @@ jobs:
       - name: Upload kernel + config
         uses: actions/upload-artifact@v4
         with:
-          name: gts210ltexx-kernel
+          name: ${{ matrix.device }}-kernel
           path: |
             out/arch/arm/boot/zImage
             out/arch/arm/boot/Image
